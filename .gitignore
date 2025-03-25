@@ -1,0 +1,4 @@
+/.env
+/.gitgnore
+/.venv
+/testingts.py
