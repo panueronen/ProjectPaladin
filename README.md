@@ -85,7 +85,17 @@ This was maybe the second biggest improvement after switching to using cuda.
 ---
 
 
+## What I learned from all this
+- This project started from a stupid joke that ended up bloating to an entire functional idea. 
+- I learned how to bring together components that are normally not used in tandem and a scary 1984-ish idea of how online conversations could be monitored using AI.
+- Whisper is pretty amazing tool even with a "low resource language" like finnnish. The trasncription works pretty well most of the time with the multitrack recording. I could see myself using it for other projcects as well
+- The old saying that simplicity is king has once again shown its power. I was pulling hairs at the beginning on how do I get the recordings and how start and stop it using a python script but the solution ended up being "lol just use autohotkey".
+-  The ClientQuery TS3 provides is pretty powerful but using it is pretty painful if people use things like special characters or emojis in their names. My code is trying its best to parse the names out of the files and match them to people on the server, but I am sure I missed some ways someone could workaround the name detection.
+-  I already knew GPUs are gold for AI processing but its a night and day diffrence in performance atleast in this use case
+-  Remember to clean up after yourself. If you leave the script running it will fill up your drive with recordings of just people talking. dont ask me how I know. I iplemented an auto delete after experiencing a 100% full ssd drive. 0/5 won't recommend
+
+---
+
 This project is provided as-is
 It is published for demonstration and portfolio purposes only.  
 Usage in real communities should be done with caution and consent.
-
