@@ -7,9 +7,9 @@ Sleep, 1000  ; Small delay
 
 Loop
 {
-    Sleep, 30000  ; Wait 30 seconds (adjust this to change recording length)
+    Sleep, 30000  ; Wait 10 seconds (adjust this to change recording length)
     Send, {F10}  ; Stop recording
-    Sleep, 1000  ; Small delay
+    Sleep, 300  ; Small delay
     Send, {F9}  ; Start new recording
 }
 

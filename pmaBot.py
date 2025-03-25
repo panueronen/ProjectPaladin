@@ -19,9 +19,9 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")
 RECORDING_DIR = r"D:\PMABotRecordings"
 WHISPER_MODEL_SIZE = "small"
-TOXICITY_THRESHOLD = 0.92
+TOXICITY_THRESHOLD = 0.96
 RULE_BASED_BADWORDS = {
-    "idiootti", "haista", "pässi", "täysi pelle", "tapa ittes", "skibidi", "retardi", "ignore my previous", "midget", "kääpiö"
+    "idiootti", "haista", "pässi", "täysi pelle", "tapa ittes", "skibidi", "retardi", "ignore my previous", "midget", "kääpiö", "kalju", "bald"
 }
 KICK_WHITELIST = {"pyr00z"}
 VIOLATION_LOG_PATH = "violations.log"
@@ -77,16 +77,28 @@ def extract_nickname_from_filename(speaker):
         pass
     return speaker  # fallback if decoding fails or format unexpected
 
-async def process_file(filepath, speaker, session_folder):
-    if filepath in PROCESSED_FILES:
+def try_delete_file(filepath, retries=5, delay=2):
+    for i in range(retries):
+        try:
+            os.remove(filepath)
+            print(f"Deleted file: {filepath}")
+            return True
+        except Exception as e:
+            time.sleep(delay)
+    print(f"Failed to delete file after retries: {filepath}")
+    return False
+
+async def process_file(filepath, speaker, session):
+    file_id = f"{session}/{os.path.basename(filepath)}"
+    if file_id in PROCESSED_FILES:
         return
 
     try:
-        result = whisper_model.transcribe(filepath, language="fi", fp16=True if DEVICE == "cuda" else False)
+        result = whisper_model.transcribe(filepath, language="fi", fp16=(DEVICE == "cuda"))
         text = result["text"].strip()
 
         if not text:
-            PROCESSED_FILES.add(filepath)
+            PROCESSED_FILES.add(file_id)
             return
 
         print(f"{speaker}: {text}")
@@ -95,7 +107,6 @@ async def process_file(filepath, speaker, session_folder):
         is_bad_rule, matched_word = is_rule_violation(text)
 
         if is_bad_ai or is_bad_rule:
-            # Create reason for kick
             if is_bad_rule:
                 violation_reason = f"Rule Violation: {matched_word}"
                 print(f"!!! PMA Violation (word: '{matched_word}')")
@@ -104,22 +115,33 @@ async def process_file(filepath, speaker, session_folder):
                 print(f"!!! PMA Violation (AI score: {score:.2f})")
 
             log_violation(speaker, text, violation_reason)
-
-            log_violation_csv(speaker, text, violation_reason, session_folder)
+            log_violation_csv(speaker, text, violation_reason, session)
 
             username = extract_nickname_from_filename(speaker)
             if username not in KICK_WHITELIST:
-                asyncio.run(clientquery_kick(username, violation_reason))
+                await clientquery_kick(username, violation_reason)
 
-        PROCESSED_FILES.add(filepath)
+        # Mark as processed
+        PROCESSED_FILES.add(file_id)
 
-        os.remove(filepath)
-        # Remove folder if empty
-        parent = os.path.dirname(filepath)
-        if not os.listdir(parent):
-            os.rmdir(parent)
+        # Try to delete the file
+        try:
+            if try_delete_file(filepath):
+                parent = os.path.dirname(filepath)
+                if not os.listdir(parent):
+                    os.rmdir(parent)
+                    print(f"Deleted empty session folder: {parent}")
+            print(f"Deleted file: {filepath}")
+            parent = os.path.dirname(filepath)
+            if not os.listdir(parent):
+                os.rmdir(parent)
+                print(f"Deleted empty session folder: {parent}")
+        except Exception as delete_err:
+            print(f"Failed to delete file or folder: {delete_err}")
+
     except Exception as e:
-        pass  # Optionally log to a file for debugging
+        print(f"Failed to process file: {e}")
+
 
 def normalize(s):
     s = unicodedata.normalize("NFKD", s)
